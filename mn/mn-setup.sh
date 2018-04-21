@@ -27,60 +27,87 @@ sleep 5
 
 # update packages and upgrade Ubuntu
 cd ~
-sudo apt-get -y update
-sudo apt-get -y upgrade
-sudo apt-get -y autoremove
+sudo apt-get update && apt-get upgrade && apt-get autoremove-y
 
 sudo apt-get -y install wget nano htop git
-sudo apt-get -y install build-essential 
-sudo apt-get -y install libtool autotools-dev autoconf automake
-sudo apt-get -y install libssl-dev
-sudo apt-get -y install libboost-all-dev
-sudo apt -y install software-properties-common
-sudo add-apt-repository ppa:bitcoin/bitcoin
-sudo apt -y update
-sudo apt-get -y install libdb4.8-dev
-sudo apt-get -y install libdb4.8++-dev
-sudo apt-get -y install libminiupnpc-dev
-sudo apt-get -y install libqt4-dev libprotobuf-dev protobuf-compiler
-sudo apt-get -y install libqrencode-dev
-sudo apt-get -y install pkg-config
-sudo apt-get -y install libzmq3-dev
 
-clear
-echo $STRING5
-sudo apt-get -y install aptitude
+###################################################
+sudo apt-get -y install libzmq3-dev
+#sudo apt-get -y install libboost-all-dev
+sudo apt-get -y install libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev
+
+sudo add-apt-repository ppa:bitcoin/bitcoin
+sudo apt-get update
+sudo apt-get -y install libdb4.8-dev libdb4.8++-dev
+
+sudo apt-get -y install libminiupnpc-dev
+sudo apt-get -y install libevent-dev
+#sudo apt -y install software-properties-common
+#######################################
+
+sudo apt-get -y install fail2ban
+sudo service fail2ban restart
+
+sudo apt-get install ufw
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh
+sudo ufw allow 13058/tcp
+sudo ufw --force enable
 
 #Generating Random Passwords
 password=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 password2=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 
-echo $STRING6
-#if [[ ("$install_fail2ban" == "y" || "$install_fail2ban" == "Y" || "$install_fail2ban" == "") ]]; then
-  cd ~
-  sudo aptitude -y install fail2ban
-  sudo service fail2ban restart
-#fi
-#if [[ ("$UFW" == "y" || "$UFW" == "Y" || "$UFW" == "") ]]; then
-  sudo apt-get install ufw
-  sudo ufw default deny incoming
-  sudo ufw default allow outgoing
-  sudo ufw allow ssh
-  sudo ufw allow 3595/tcp
-  sudo ufw --force enable
-#fi
-
 #Install Daemon
+
+wget https://github.com/fasterpool/Reden/tree/1.0/releases
+
 #wget https://github.com/NicholasAdmin/EDEN/releases/download/Linux/eden-ubu1604.tar.gz
+
 #sudo tar -xzvf eden-ubu1604.tar.gz --directory /usr/bin
+
 #sudo rm eden-ubu1604.tar.gz
 sudo cp -v ~/EDEN-MN-SETUP/Eden-v1.0.0.1-ubuntu16/edend /usr/bin/
 sudo cp -v ~/EDEN-MN-SETUP/Eden-v1.0.0.1-ubuntu16/eden-cli /usr/bin/
-sudo chmod +x /usr/bin/edend
-sudo chmod +x /usr/bin/eden-cli
+sudo chmod 775 /usr/bin/redend
+sudo chmod 775 /usr/bin/reden-cli
 
-#Start Daemon so it will create coin directory (~/.eden)
-edend -daemon
+cd ~
+
+#Starting daemon first time
+redend -daemon
+echo "sleep for 10 seconds..."
+sleep 10
+
+reden-cli stop
+
+#Create eden.conf
+echo '
+rpcuser=jkGFVjktfv
+rpcpassword=liuBH876fjh
+rpcallowip=127.0.0.1
+listen=1
+server=1
+daemon=1
+logtimestamps=1
+maxconnections=32
+
+externalip=45.63.37.5
+
+masternode=1
+masternodeprivkey=28U5zqqnEgGXae9QPvFs6nU6o8Yij8pTUUcUZVZuCP7SqHCsqfp
+
+addnode=45.76.127.252
+addnode=35.178.15.243
+' | sudo -E tee ~/.redencore/reden.conf >/dev/null 2>&1
+
+#sudo chmod 0600 ~/.redencore/reden.conf
+
+#Starting daemon second time
+redend
+
+tail -f ~/.redencore/debug.log
 
 echo "sleep for 30 seconds..."
 sleep 30
@@ -99,24 +126,6 @@ echo $STRING13
 echo $STRING4
 sleep 10
 
-#Create eden.conf
-echo '
-rpcuser='$password'
-rpcpassword='$password2'
-rpcallowip=127.0.0.1
-listen=1
-server=1
-daemon=1
-logtimestamps=1
-maxconnections=32
-externalip='$ip'
-bind='$ip':3595
-masternodeprivkey='$key'
-masternode=1
-addnode=45.76.12.139
-addnode=144.202.81.111
-' | sudo -E tee ~/.eden/eden.conf >/dev/null 2>&1
-sudo chmod 0600 ~/.eden/eden.conf
 
 #Starting coin
 (
